@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
-import sys
-print(sys.executable)
-
 import networkx as nx
 from graph_utility import * 
 
 
 '''
-SNA tutorial 
+SNA tutorial (MSLAB)
 Author: Wei-Ming(MSLAB, NTU)
 '''
 
