@@ -10,8 +10,12 @@ from sql_cmd import *
 lending_action_table = 'lending_actions'
 lender_table = 'lenders'
 loan_table = 'loans'
+
 lender_column = ['lenders.lender_id', 'country_code', 'inviter_id', 'invitee_count', 'loan_count']
+lender_column_name = ['lender_id', 'country_code', 'inviter_id', 'invitee_count', 'loan_count']
+
 loan_column = ['loans.loan_id', 'sector', 'amount', 'borrowers', 'country', 'geo']
+loan_column_name = ['loan_id', 'sector', 'amount', 'borrowers', 'country', 'geo']
 
 def fetch_all(cmd, error_message):
     try:
@@ -81,9 +85,6 @@ def remap(rows):
 def gen_train_and_test_file(lending_action, train_percent, neg_percent, lender_map, loan_map):
     assert train_percent > 0 and train_percent < 1
     assert neg_percent >= 0
-    total_num = len(lending_action)
-    train_num = int(total_num * train_percent)
-    test_num = total_num - train_num
     
     action_set = set()
     new_lending_action = list()
@@ -93,6 +94,11 @@ def gen_train_and_test_file(lending_action, train_percent, neg_percent, lender_m
             new_loan_id = loan_map[str(loan_id)]
             action_set.add((new_lender_id, new_loan_id))
             new_lending_action.append((new_lender_id, new_loan_id))
+    
+    total_num = len(new_lending_action)
+    train_num = int(total_num * train_percent)
+    test_num = total_num - train_num
+
     # shuffle data and divide data
     random.shuffle(new_lending_action)
     train_action = new_lending_action[0:train_num-1]
@@ -112,6 +118,20 @@ def gen_train_and_test_file(lending_action, train_percent, neg_percent, lender_m
             cnt += 1
     return (train_action, test_action, test_neg_action)
 
+# here the lender has been remapped
+# c_index : invitee_column_index
+def preprocess_inviter(lender, lender_map, c_index):
+    hit_num = 0
+    for row in lender:
+        if row[c_index] in lender_map:
+            hit_num += 1
+            row[c_index] = lender_map[row[c_index]]
+        else:
+            row[c_index] = -1
+    print('hit num:', hit_num)
+    return lender
+
+
 def write_train_and_test_file(train_action, test_action, test_neg_action):
     write_file('train.csv', ['lender_id', 'loan_id'], train_action)
 
@@ -128,16 +148,26 @@ def write_train_and_test_file(train_action, test_action, test_neg_action):
 # write lending_action(training) or lenders or loans file
 def write_file(outfile, column, rows, ignore_first_column = False):
     with open(outfile, 'w') as f:
+        first_printed = True
         for i in range(0, len(column)):
             if ignore_first_column and i == 0:
                 continue
-            print(column[i], end=',', file=f)
+            if first_printed:
+                print(column[i], end='', file=f)
+                first_printed = False
+            else:
+                print(", %s" % (column[i]), end='', file=f)
         print('', file=f)
         for row in rows:
+            first_printed = True
             for i in range(0, len(row)):
                 if ignore_first_column and i == 0:
                     continue
-                print(row[i], end=',', file=f)
+                if first_printed:
+                    print(row[i], end='', file=f)
+                    first_printed = False
+                else:
+                    print(", %s" % (row[i]), end='', file=f)
             print('', file=f)
 
 def write_ans_file(outfile, rows):
@@ -155,21 +185,25 @@ if __name__ == '__main__':
     to_date = get_date(sys.argv[2])
     train_percent = float(sys.argv[3])
     neg_percent = float(sys.argv[4])
+    print('train_percent:', train_percent)
+    print('neg_percent:', neg_percent)
 
     db = database()
     cursor = db.cursor
     
     lender = get_lenders(from_date, to_date)
     (lender, lender_map) = remap(lender)
-    write_file('lenders.csv', lender_column, lender)
+    lender = preprocess_inviter(lender, lender_map, 2)
+    write_file('lenders.csv', lender_column_name, lender)
     print('# lenders: ', len(lender_map))
 
     loan = get_loans(from_date, to_date)
     (loan, loan_map) = remap(loan)
-    write_file('loans.csv', loan_column, loan)
+    write_file('loans.csv', loan_column_name, loan)
     print('# loans: ', len(loan_map))
 
     lending_action = get_lending_action(from_date, to_date)
+    #print('lending actions:', len(lending_actions))
     (train_action, test_action, test_neg_action) = gen_train_and_test_file(lending_action, 
             train_percent, neg_percent, lender_map, loan_map)
     write_train_and_test_file(train_action, test_action, test_neg_action)
