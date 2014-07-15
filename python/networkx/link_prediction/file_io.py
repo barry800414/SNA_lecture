@@ -12,15 +12,22 @@ def read_data(filename):
     data_list = list()
     with open(filename, 'r') as f:
         line = f.readline().strip()
-        entry = f.split(',')
+        entry = line.split(',')
         assert len(entry) == 2
-        assert entry[0] == 'lender_id'
-        assert entry[1] == 'loan_id'
+        assert entry[0].strip() == 'lender_id'
+        assert entry[1].strip() == 'loan_id'
         for line in f:
             entry = (line.strip()).split(',')
             assert len(entry) == 2
             data_list.append( (int(entry[0]), int(entry[1])) )            
     return data_list
+
+def read_ans(filename):
+    ans = list()
+    with open(filename, 'r') as f:
+        for line in f:
+            ans.append(int(line.strip()))
+    return ans
 
 def read_feature_column_major(filename, column_type):
     with open(filename, 'r') as f:
@@ -38,7 +45,7 @@ def read_feature_column_major(filename, column_type):
                 if t == 'categorical':
                     c.mapping = dict()
                 columns.append(c)
-            
+        
         for line in f:
             entry = (line.strip()).split(',')
             assert len(entry) == (column_num + 1)
@@ -84,3 +91,28 @@ def read_graph(filename):
             assert len(entry) == 2
             graph.add_edge(int(entry[0]), int(entry[1]))
     return graph
+
+# FAULT: the function has stolen the ans
+def read_test_graph(filename, ansfile):
+    graph = nx.Graph()
+    f1 = open(filename, 'r')
+    f2 = open(ansfile, 'r')
+    f1.readline()
+    for line1 in f1:
+        line2 = f2.readline()
+        ans = int(line2.strip())
+        entry = (line1.strip()).split(',')
+        x = int(entry[0])
+        y = int(entry[1])
+        if ans == 1:
+            graph.add_edge(x, y)
+        else:
+            graph.add_node(x)
+            graph.add_node(y)
+
+    f1.close()
+    f2.close()
+
+    return graph
+
+

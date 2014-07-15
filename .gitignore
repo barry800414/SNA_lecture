@@ -1,2 +1,6 @@
 *~
 *un~
+*.dat
+*.csv
+*.ans
+*.predict
