@@ -143,13 +143,13 @@ if __name__ == "__main__":
 
     for column in lender_feature:
         if column.type == 'numerical':
-            cf.normalize_column(column)
+            cf.normalize_column(column, 'max')
         elif column.type == 'categorical':
             cf.convert_to_dummy_variable(column)
 
     for column in loan_feature:
         if column.type == 'numerical':
-            cf.normalize_column(column)
+            cf.normalize_column(column, 'max')
         elif column.type == 'categorical':
             cf.convert_to_dummy_variable(column)
 

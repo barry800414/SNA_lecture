@@ -13,13 +13,11 @@ def normalize_column(column, normalize='sigmoid'):
         return 
     col_value = column.value
     if normalize == 'max':
-        values = value.values()
-        max_v = max(max(values), abs(min(values)))
-        if max_v == 0.0:
-            return column
         # normalize the column by maximum value
-        for key in col_value.keys():
-            col_value[key] = col_value[key] / max_v
+        # TODO Task_5: normalize the data by the maximum of absolute value in a column
+        # max_v = OOXX
+        # for key in col_value.keys():
+            #col_value[key] = OOXX
         return column
     elif normalize == 'sigmoid':
         # normalize the column by sigmoid function 

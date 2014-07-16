@@ -76,38 +76,17 @@ def gen_testing_data(all_graph, test_pairs, test_labels,
 
 def feature_extraction(graph, pairs):
     # feature extraction
-    # edge_bet_col = get_all_edge_betweenness_centrality(graph)
     print('shortest path length', file=sys.stderr)
     shortest_path_length_col = ef.get_shortest_path_length(graph, pairs)
 
     print('edge_embedness', file=sys.stderr)
     edge_embed_col = ef.get_edge_embeddedness(graph, pairs)
 
-    print('jaccards coefficient', file=sys.stderr)
-    jaccards_col = ef.get_jaccards_coefficient(graph, pairs)
-    
-    print('adamic/adar score', file=sys.stderr)
-    adamic_adar_col = ef.get_adamic_adar_score(graph, pairs)
-    
-    print('preferential score', file=sys.stderr)
-    prefer_col = ef.get_preferential_score(graph, pairs)
-    
-    #print('katz_score')
-    #katz_col = ef.get_katz_score(train_graph, train_graph.edges(), 0.8, 3)
-    #print('hitting_time')
-    #hitting_col = ef.get_hitting_time(train_graph, train_graph.edges(), 3)
-    
     # normalize the feature value
     cf.normalize_column(shortest_path_length_col)
     cf.normalize_column(edge_embed_col)
-    cf.normalize_column(jaccards_col)
-    cf.normalize_column(adamic_adar_col)
-    cf.normalize_column(prefer_col)
-    #cf.normalize_column(katz_score)
-    #cf.normalize.column(hitting_col)
 
-    pair_feature = (shortest_path_length_col, edge_embed_col, 
-            jaccards_col, adamic_adar_col, prefer_col)
+    pair_feature = (shortest_path_length_col, edge_embed_col)
     
     return pair_feature
 

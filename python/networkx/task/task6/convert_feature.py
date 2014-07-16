@@ -33,11 +33,11 @@ def convert_to_dummy_variable(column):
         return 
     col_value = column.value
     mapping = dict()
-    for key, category in col_value.items():
-        if category not in mapping:
-            mapping[category] = len(mapping)
-        col_value[key] = mapping[category]
-    column.dim = len(mapping)
+    # Task_6: EDIT here, convert a column of categorical feature
+    # to dummy variable(indicator variable)
+    #for key, category in col_value.items():
+    # do something
+    # column.dim = ooxx
     return column
 
 # convert each row and features to svm format 
