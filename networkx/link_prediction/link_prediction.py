@@ -50,7 +50,7 @@ def merge_graph(graph1, graph2):
     new_graph.add_nodes_from(graph2.nodes())
     return new_graph
 
-def gen_training_data(train_graph, lender_feature, loan_feature, filename):    
+def gen_training_data(train_graph, user_feature, filename):    
     # sample negative samples
     neg_edge_num = train_graph.number_of_edges()
     neg_edges = sample_negative_edges(train_graph, neg_edge_num)
@@ -63,18 +63,18 @@ def gen_training_data(train_graph, lender_feature, loan_feature, filename):
     pair_feature = feature_extraction(train_graph, train_pairs)
     
     outfile = open(filename, 'w')
-    cf.convert_to_svm_format(train_pairs, lender_feature, loan_feature, 
+    cf.convert_to_svm_format(train_pairs, user_feature, 
             pair_feature, outfile, testing_ans = train_labels)
     outfile.close()
 
 def gen_testing_data(all_graph, test_pairs, test_labels, 
-        lender_feature, loan_feature, filename):
+        user_feature, filename):
     
     # extract topological features
     pair_feature = feature_extraction(all_graph, test_pairs)
 
     outfile = open(filename, 'w')
-    cf.convert_to_svm_format(test_pairs, lender_feature, loan_feature, 
+    cf.convert_to_svm_format(test_pairs, user_feature,  
             pair_feature, outfile, testing_ans = test_labels)
     outfile.close()
 
@@ -123,8 +123,8 @@ def feature_extraction(graph, pairs):
     return pair_feature
 
 if __name__ == "__main__":
-    if len(sys.argv) != 7:
-        print('Usage:', sys.argv[0], 'in_train_file in_test_file in_test_ans user_profile_file out_train_file out_test_file')
+    if len(sys.argv) != 8:
+        print('Usage:', sys.argv[0], 'in_train_file in_test_file in_test_ans in_user_profile_file in_config out_train_file out_test_file')
         exit()
     
     # arguments
@@ -132,44 +132,28 @@ if __name__ == "__main__":
     test_file = sys.argv[2]
     test_ans_file = sys.argv[3]
     user_profile_file = sys.argv[4]
-    out_train_file = sys.argv[5]
-    out_test_file = sys.argv[6]
+    config_file = sys.argv[5]
+    out_train_file = sys.argv[6]
+    out_test_file = sys.argv[7]
 
     # read in data
     train_graph = file_io.read_graph(train_file)
-    '''
-    (lender_feature, lender_column_name) = \
-        file_io.read_feature_column_major(lender_file,
-        ['categorical', 'numerical','numerical', 'numerical'])
-    (loan_feature, loan_column_name) = \
-        file_io.read_feature_column_major(loan_file, 
-        ['categorical', 'numerical', 'numerical', 'categorical', 'other'])
-    '''
-    lender_feature = None
-    loan_feature = None
+    config = file_io.read_config(config_file)
+    user_feature = None
+    (user_feature, feature_name) = file_io.read_feature_column_major(user_profile_file, config)
+    
+    #normalize features
+    for column in user_feature:
+        if column.type == 'numerical':
+            cf.normalize_column(column)
+        elif column.type == 'categorical':
+            cf.convert_to_dummy_variable(column)
 
-    #test_graph = file_io.read_test_graph(test_file, test_ans_file)
     test_pair = file_io.read_data(test_file)
     all_graph = update_nodes_from_test_data(train_graph, test_pair)
     test_ans = gen_label_mapping(test_pair, file_io.read_ans(test_ans_file))
-    #all_graph = merge_graph(train_graph, test_graph)
-
-    '''
-    for column in lender_feature:
-        if column.type == 'numerical':
-            cf.normalize_column(column)
-        elif column.type == 'categorical':
-            cf.convert_to_dummy_variable(column)
-
-    for column in loan_feature:
-        if column.type == 'numerical':
-            cf.normalize_column(column)
-        elif column.type == 'categorical':
-            cf.convert_to_dummy_variable(column)
-    '''
-
-    gen_training_data(train_graph, lender_feature, 
-            loan_feature, out_train_file)
+    
+    gen_training_data(train_graph, user_feature, out_train_file)
     gen_testing_data(train_graph, test_pair, test_ans, 
-            lender_feature, loan_feature, out_test_file)
+            user_feature, out_test_file)
 

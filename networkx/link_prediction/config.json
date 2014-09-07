@@ -52,5 +52,5 @@
 	"movies": "categorical",
 	"travelling": "categorical",
 	"health": "categorical",
-	"companies_brands": "categorical",
+	"companies_brands": "categorical"
 }

@@ -5,6 +5,7 @@ Author: Wei-Ming (MsLab)
 Usage: deal with I/O part for link prediction project
 '''
 
+import json
 import networkx as nx
 from Column import *
 
@@ -30,17 +31,18 @@ def read_ans(filename):
     return ans
 
 # read feature csv file as a list of Columns 
-def read_feature_column_major(filename, column_type):
+def read_feature_column_major(filename, column_config):
     with open(filename, 'r') as f:
         line = f.readline().strip()
         entry = line.split(',')
         column_name = entry[1:]
         column_num = len(column_name)
-        assert len(column_type) == column_num
+        assert len(column_config) == column_num
         
         # generate the list of Columns for later usage
         columns = list()
-        for t in column_type:
+        for name in column_name:
+            t = column_config[name]
             c = Column(1, t)
             columns.append(c)
         
@@ -60,7 +62,7 @@ def read_feature_column_major(filename, column_type):
                         column.value[row_id].append(v)
                 elif column.type == 'numerical':
                     column.value[row_id] = float(value)
-        
+
     return (columns, column_name)
 
 # read feature csv file as a list of rows
@@ -89,6 +91,8 @@ def read_graph(filename):
             graph.add_edge(int(entry[0]), int(entry[1]))
     return graph
 
-
-
-
+def read_config(filename):
+    # read configuration file
+    with open(filename, 'r') as f:
+        config = json.load(f)
+    return config
