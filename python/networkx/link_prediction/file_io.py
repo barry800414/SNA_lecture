@@ -42,7 +42,6 @@ def read_feature_column_major(filename, column_type):
         columns = list()
         for t in column_type:
             c = Column(1, t)
-            c.value = dict()
             columns.append(c)
         
         # read in rows 
@@ -52,10 +51,13 @@ def read_feature_column_major(filename, column_type):
             row_id = int(entry[0])
             for i, column in enumerate(columns):
                 value = entry[i+1].strip()
-                if len(value) == 0 or value == 'None':
+                if len(value) == 0 or value == 'None' or value == 'null':
                     continue
                 if column.type == 'categorical':
-                    column.value[row_id] = value
+                    value = value.split('\t')
+                    column.value[row_id] = list()
+                    for v in value:
+                        column.value[row_id].append(v)
                 elif column.type == 'numerical':
                     column.value[row_id] = float(value)
         
@@ -87,27 +89,6 @@ def read_graph(filename):
             graph.add_edge(int(entry[0]), int(entry[1]))
     return graph
 
-# FAULT: the function has stolen the answer
-def read_test_graph(filename, ansfile):
-    graph = nx.Graph()
-    f1 = open(filename, 'r')
-    f2 = open(ansfile, 'r')
-    f1.readline()
-    for line1 in f1:
-        line2 = f2.readline()
-        ans = int(line2.strip())
-        entry = (line1.strip()).split(',')
-        x = int(entry[0])
-        y = int(entry[1])
-        if ans == 1:
-            graph.add_edge(x, y)
-        else:
-            graph.add_node(x)
-            graph.add_node(y)
 
-    f1.close()
-    f2.close()
-
-    return graph
 
 

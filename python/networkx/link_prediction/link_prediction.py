@@ -7,6 +7,10 @@ import extract_feature as ef
 from Column import *
 import random
 
+'''
+Author: Wei-Ming Chen (MSLab, CSIE, NTU)
+Contacts: barry800414@gmail.com
+'''
 
 def sample_negative_edges(graph, num, method='random_edge'):
     nodes = graph.nodes()
@@ -76,10 +80,7 @@ def gen_testing_data(all_graph, test_pairs, test_labels,
 
 def feature_extraction(graph, pairs):
     # feature extraction
-    # edge_bet_col = get_all_edge_betweenness_centrality(graph)
-    print('shortest path length', file=sys.stderr)
-    shortest_path_length_col = ef.get_shortest_path_length(graph, pairs)
-
+    
     print('edge_embedness', file=sys.stderr)
     edge_embed_col = ef.get_edge_embeddedness(graph, pairs)
 
@@ -88,52 +89,64 @@ def feature_extraction(graph, pairs):
     
     print('adamic/adar score', file=sys.stderr)
     adamic_adar_col = ef.get_adamic_adar_score(graph, pairs)
+
+    print('shortest path length', file=sys.stderr)
+    shortest_path_length_col = ef.get_shortest_path_length(graph, pairs)
     
-    print('preferential score', file=sys.stderr)
-    prefer_col = ef.get_preferential_score(graph, pairs)
-    
+    #katz beta score
     #print('katz_score')
     #katz_col = ef.get_katz_score(train_graph, train_graph.edges(), 0.8, 3)
+
+    #hitting time
     #print('hitting_time')
     #hitting_col = ef.get_hitting_time(train_graph, train_graph.edges(), 3)
     
+    #rooted pagerank
+
+    print('preferential attachment score', file=sys.stderr)
+    prefer_col = ef.get_preferential_score(graph, pairs)
+    
+    #simrank
+    
     # normalize the feature value
-    cf.normalize_column(shortest_path_length_col)
     cf.normalize_column(edge_embed_col)
     cf.normalize_column(jaccards_col)
     cf.normalize_column(adamic_adar_col)
-    cf.normalize_column(prefer_col)
+    cf.normalize_column(shortest_path_length_col)
     #cf.normalize_column(katz_score)
     #cf.normalize.column(hitting_col)
+    cf.normalize_column(prefer_col)
 
-    pair_feature = (shortest_path_length_col, edge_embed_col, 
-            jaccards_col, adamic_adar_col, prefer_col)
+    pair_feature = (edge_embed_col, jaccards_col, adamic_adar_col,   
+            shortest_path_length_col, prefer_col)
     
     return pair_feature
 
 if __name__ == "__main__":
-    if len(sys.argv) != 8:
-        print('Usage', sys.argv[0], 'in_train_file in_test_file in_test_ans lender_file loan_file out_train_file out_test_file')
+    if len(sys.argv) != 7:
+        print('Usage:', sys.argv[0], 'in_train_file in_test_file in_test_ans user_profile_file out_train_file out_test_file')
         exit()
     
     # arguments
     train_file = sys.argv[1]
     test_file = sys.argv[2]
     test_ans_file = sys.argv[3]
-    lender_file = sys.argv[4]
-    loan_file = sys.argv[5]
-    out_train_file = sys.argv[6]
-    out_test_file = sys.argv[7]
-    
+    user_profile_file = sys.argv[4]
+    out_train_file = sys.argv[5]
+    out_test_file = sys.argv[6]
 
     # read in data
     train_graph = file_io.read_graph(train_file)
+    '''
     (lender_feature, lender_column_name) = \
         file_io.read_feature_column_major(lender_file,
         ['categorical', 'numerical','numerical', 'numerical'])
     (loan_feature, loan_column_name) = \
         file_io.read_feature_column_major(loan_file, 
         ['categorical', 'numerical', 'numerical', 'categorical', 'other'])
+    '''
+    lender_feature = None
+    loan_feature = None
 
     #test_graph = file_io.read_test_graph(test_file, test_ans_file)
     test_pair = file_io.read_data(test_file)
@@ -141,6 +154,7 @@ if __name__ == "__main__":
     test_ans = gen_label_mapping(test_pair, file_io.read_ans(test_ans_file))
     #all_graph = merge_graph(train_graph, test_graph)
 
+    '''
     for column in lender_feature:
         if column.type == 'numerical':
             cf.normalize_column(column)
@@ -152,6 +166,7 @@ if __name__ == "__main__":
             cf.normalize_column(column)
         elif column.type == 'categorical':
             cf.convert_to_dummy_variable(column)
+    '''
 
     gen_training_data(train_graph, lender_feature, 
             loan_feature, out_train_file)

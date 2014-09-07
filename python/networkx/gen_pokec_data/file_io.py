@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 def read_csv_column_major(filename, return_type='dict'):
     with open(filename, 'r') as f:
@@ -31,11 +32,6 @@ def read_csv_column_major(filename, return_type='dict'):
     else:
         return None
 
-
-def read_csv_row_major(filename):
-    pass 
-
-
 def write_csv_column_major(col_name, cols, filename):
     with open(filename, 'w') as f:
         # first line
@@ -53,3 +49,30 @@ def write_csv_column_major(col_name, cols, filename):
                 f.write(',' + cols[j][i])
             f.write('\n')
 
+def read_edges_as_set(filename):
+    edges_set = set()
+    with open(filename, 'r') as f:
+        f.readline()
+        for line in f:
+            entry = line.strip().split(',')
+            assert len(entry) == 2
+            v1 = int(entry[0])
+            v2 = int(entry[1])
+            edges_set.add((min(v1, v2), max(v1, v2)))
+    return edges_set
+
+def write_training_file(training_edges_list, filename):
+    with open(filename, 'w') as f:
+        print('user1, user2', file=f)
+        for e in training_edges_list:
+            print(e[0], e[1], sep=',', file=f)
+    return 
+
+def write_testing_file(testing_edges_list, test_filename, ans_filename):
+    with open(test_filename, 'w') as test_f:
+        with open(ans_filename, 'w') as ans_f:
+            print('user1, user2', file=test_f)
+            for e in testing_edges_list:
+                print(e[0][0], e[0][1], sep=',', file=test_f)
+                print(e[1], file=ans_f)
+    return 

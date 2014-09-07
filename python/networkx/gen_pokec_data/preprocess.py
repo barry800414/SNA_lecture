@@ -132,7 +132,7 @@ import sys
 from file_io import *
 if __name__=='__main__':
     if len(sys.argv) != 4:
-        print(sys.argv, 'config_file in_file out_file', file=sys.stderr)
+        print(sys.argv[0], 'config_file in_file out_file', file=sys.stderr)
         exit(-1)
     
     # read in arguments

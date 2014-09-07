@@ -1,107 +1,77 @@
 #!/usr/bin/env python
-from __future__ import print_function
+from __future__ import print_function 
 import sys
-import networkx as nx
+from file_io import *
 import random
-import sample_graph
 
-def get_mapping(nodes_set):
-    mapping = dict()
-    cnt = 0
-    for n in nodes_set:
-        mapping[n] = cnt
-        cnt += 1
-    return mapping
+def generate_data(edges_set, training_num, testing_num, testing_neg_num):
+    assert (training_num + testing_num) == len(edges_set)
 
-if len(sys.argv) != 5:
-    print('Usage:', sys.argv[0], 'edges nodes column goal_num', file=sys.stderr)
-    exit(-1)
+    #get maximum id of nodes
+    max_node_id = -1
+    for e in edges_set:
+        if e[0] > max_node_id:
+            max_node_id = e[0]
+        if e[1] > max_node_id:
+            max_node_id = e[1]
 
-edge_file = sys.argv[1]
-node_file = sys.argv[2]
-node_column = sys.argv[3]
-goal_num = int(sys.argv[4])
+    #sampling negative edges
+    now_num = 0
+    neg_edges_set = set()
+    while now_num < testing_neg_num:
+        v1 = random.randint(0, max_node_id+1)
+        v2 = random.randint(0, max_node_id+1)
+        if v1 != v2 and (min(v1, v2), max(v1, v2)) not in edges_set:
+            if (min(v1, v2), max(v1, v2)) not in neg_edges_set:
+                neg_edges_set.add((min(v1, v2), max(v1, v2)))
+                now_num += 1 
 
-g = nx.Graph()
+    # slice the original edges set into training and testing set
+    edges_list = list(edges_set)
+    random.shuffle(edges_list)
+    training_edges_list = edges_list[0:training_num]
+    testing_edges_list = list()
+    for i in range(training_num, training_num+testing_num):
+        testing_edges_list.append((edges_list[i], 1))
+    for e in neg_edges_set:
+        testing_edges_list.append((e, 0))
+    random.shuffle(testing_edges_list)
 
-print('read in edges')
-count = 0 
-# read in edges
-with open(edge_file, 'r') as f:
-    for line in f:
-        entry = (line.strip()).split('\t')
-        g.add_edge(int(entry[0]), int(entry[1]))
-        count += 1
-        if count % 1000000 == 0:
-            print(count)
-
-# random sample graph
-print('sampling graph')
+    return (training_edges_list, testing_edges_list)
 
 
-'''
-now_num = 1
-nodes_list = g.nodes()
-r = random.randint(0, len(nodes_list) - 1)
-selected = set()
-selected.add(nodes_list[r])
-candidate = set(g.neighbors(nodes_list[r]))
-while now_num < goal_num:
-    assert len(candidate) != 0
-    n = random.sample(candidate, 1)
-    selected.add(n[0])
-    candidate.update(set(g.neighbors(n[0])))
-    now_num += 1
-    if now_num % 1000 == 0:
-        print(now_num)
 
-mapping = get_mapping(selected)
+if __name__=='__main__':
+    if len(sys.argv) != 7:
+        print(sys.argv[0], 'in_training_csv out_training_csv out_testing_csv out_ans_file training_ratio neg_edges_times', file=sys.stderr)
+        exit(-1)
+    
+    in_training_csv = sys.argv[1]
+    out_training_csv = sys.argv[2]
+    out_testing_csv = sys.argv[3]
+    out_ans_file = sys.argv[4]
+    training_ratio = float(sys.argv[5])
+    neg_edges_times = float(sys.argv[6])
+    assert training_ratio < 1.0 and training_ratio > 0.0
+    assert neg_edges_times > 0.0
 
-# get node induced graph
-new_g = nx.Graph()
-for n1 in selected:
-    nei = set(g.neighbors(n1))
-    intersect = nei & selected
-    for n2 in intersect:
-        new_g.add_edge(n1, n2)
-'''
+    edges_set = read_edges_as_set(in_training_csv)
 
-(sampled_node_set, sampled_edge_set) = sample_graph.sample_graph1(g, goal_num)
-mapping = get_mapping(sampled_node_set)
+    total_num = len(edges_set)
+    training_num = int(total_num * training_ratio)
+    testing_num = total_num - training_num
+    testing_neg_num = int(testing_num * neg_edges_times)
+    
 
-print('Output edges')
-outfile = open('edges.txt', 'w')
-for edge in sampled_edge_set:
-    print(mapping[edge[0]], mapping[edge[1]], file=outfile)
-outfile.close()
+    (training_edges_list, testing_edges_list) = generate_data(edges_set, training_num, testing_num, testing_neg_num)
+    write_training_file(training_edges_list, out_training_csv)
+    write_testing_file(testing_edges_list, out_testing_csv, out_ans_file)
 
-print('read in column names')
-# read in node column
-cols = list()
-with open(node_column, 'r') as f:
-    for line in f:
-        cols.append(line.strip())
+    print('total_edges:', total_num)
+    print('expected training_edges:', training_num)
+    print('expected testing_edges:', testing_num)
+    print('expected testing_neg_edges:', testing_neg_num)
 
-print('read in and write node feature')
-# read in and write node feature
-outfile = open('nodes_profile.csv', 'w')
-# write the first column
-for i in range(0, len(cols)-1):
-    print(cols[i], end=",", file=outfile)
-print(cols[len(cols)-1], end='\n', file=outfile)
-
-count = 0 
-with open(node_file, 'r') as f:
-    for line in f:
-        line = line.strip()
-        i = line.index('\t')
-        node_id = int(line[0:i])
-        if node_id in sampled_node_set:
-            print(mapping[node_id], end=",", file=outfile)
-            feature = line[i+1:].replace(',', '#$#$#$#')
-            feature = feature.replace('\t', ',')
-            print(feature, file=outfile)
-            count += 1
-outfile.close()
-print(count)
-
+    print('actual training_edges:', len(training_edges_list))
+    print('actual all_testing_edges:', len(testing_edges_list))
+    

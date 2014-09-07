@@ -33,10 +33,11 @@ def convert_to_dummy_variable(column):
         return 
     col_value = column.value
     mapping = dict()
-    for key, category in col_value.items():
-        if category not in mapping:
-            mapping[category] = len(mapping)
-        col_value[key] = mapping[category]
+    for row_id, categories in col_value.items():
+        for category in categories:
+            if category not in mapping:
+                mapping[category] = len(mapping)
+            col_value[key] = mapping[category]
     column.dim = len(mapping)
     return column
 
@@ -70,29 +71,31 @@ def convert_to_svm_format(row_ids, x_feature, y_feature, pair_feature, outfile, 
         x_id = pair_id[0]
         y_id = pair_id[1]
  
-        # x's feature
-        for i, column in enumerate(x_feature):
-            if x_id not in column.value:
-                continue
-            if column.type == 'numerical':
-                print(" %d:%f" % (x_dim[i], column.value[x_id]), end="", file=outfile)
-            elif column.type== 'categorical':
-                print(" %d:1" % (x_dim[i] + column.value[x_id]), end="", file=outfile)      
+        if x_feature != None and y_feature != None:
+            # x's feature
+            for i, column in enumerate(x_feature):
+                if x_id not in column.value:
+                    continue
+                if column.type == 'numerical':
+                    print(" %d:%f" % (x_dim[i], column.value[x_id]), end="", file=outfile)
+                elif column.type== 'categorical':
+                    print(" %d:1" % (x_dim[i] + column.value[x_id]), end="", file=outfile)      
 
-        # y's feature
-        for i, column in enumerate(y_feature):
-            if y_id not in column.value:
-                continue
-            if column.type == 'numerical':
-                print(" %d:%f" % (y_dim[i], column.value[y_id]), end="", file=outfile)
-            elif column.type== 'categorical':
-                print(" %d:1" % (y_dim[i] + column.value[y_id]), end="", file=outfile)      
+            # y's feature
+            for i, column in enumerate(y_feature):
+                if y_id not in column.value:
+                    continue
+                if column.type == 'numerical':
+                    print(" %d:%f" % (y_dim[i], column.value[y_id]), end="", file=outfile)
+                elif column.type== 'categorical':
+                    print(" %d:1" % (y_dim[i] + column.value[y_id]), end="", file=outfile)      
         print("", file=outfile)
 
 def gen_dim_list(columns, offset):
     dim = list()
     now_dim = offset
-    for column in columns:
-        dim.append(now_dim)
-        now_dim += column.dim
+    if columns != None:
+        for column in columns:
+            dim.append(now_dim)
+            now_dim += column.dim
     return (dim, now_dim)
