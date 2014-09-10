@@ -8,7 +8,7 @@ def sigmoid(x):
     return 1.0 / (1.0 + math.exp(-1.0 * x))
 
 # normalize the value to [-1, 1] (for numerical column)
-def normalize_column(column, normalize='sigmoid'):
+def normalize_column(column, normalize='max'):
     if column.type != 'numerical': 
         return 
     col_value = column.value

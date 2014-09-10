@@ -50,7 +50,9 @@ def merge_graph(graph1, graph2):
     new_graph.add_nodes_from(graph2.nodes())
     return new_graph
 
-def gen_training_data(train_graph, user_feature, filename):    
+def gen_training_data(train_graph, node_feature, filename):    
+    print('=========Generating training data=========', file=sys.stderr)
+
     # sample negative samples
     neg_edge_num = train_graph.number_of_edges()
     neg_edges = sample_negative_edges(train_graph, neg_edge_num)
@@ -61,66 +63,69 @@ def gen_training_data(train_graph, user_feature, filename):
     train_labels.update(gen_label_mapping(neg_edges, -1))
 
     # extract topplogical features
-    pair_feature = feature_extraction(train_graph, train_pairs)
+    pair_feature = feature_extraction(train_graph, train_pairs, node_feature)
     
+    # if you want to output dummy variable, comment the next line
+    node_feature = None
+
     outfile = open(filename, 'w')
-    cf.convert_to_svm_format(train_pairs, user_feature, 
+    cf.convert_to_svm_format(train_pairs, node_feature, 
             pair_feature, outfile, testing_ans = train_labels)
     outfile.close()
 
 def gen_testing_data(all_graph, test_pairs, test_labels, 
-        user_feature, filename):
-    
+        node_feature, filename):
+    print('=========Generating testing data=========', file=sys.stderr)
+
     # extract topological features
-    pair_feature = feature_extraction(all_graph, test_pairs)
+    pair_feature = feature_extraction(all_graph, test_pairs, node_feature)
+    
+    # if you want to output dummy variable, comment the next line
+    node_feature = None
 
     outfile = open(filename, 'w')
-    cf.convert_to_svm_format(test_pairs, user_feature,  
+    cf.convert_to_svm_format(test_pairs, node_feature,  
             pair_feature, outfile, testing_ans = test_labels)
     outfile.close()
 
-def feature_extraction(graph, pairs):
-    # feature extraction
+def feature_extraction(graph, pairs, node_feature):
     
     print('edge_embedness', file=sys.stderr)
     edge_embed_col = ef.get_edge_embeddedness(graph, pairs)
+    cf.normalize_column(edge_embed_col)
 
     print('jaccards coefficient', file=sys.stderr)
     jaccards_col = ef.get_jaccards_coefficient(graph, pairs)
+    cf.normalize_column(jaccards_col)
     
     print('adamic/adar score', file=sys.stderr)
     adamic_adar_col = ef.get_adamic_adar_score(graph, pairs)
+    cf.normalize_column(adamic_adar_col)
 
     print('shortest path length', file=sys.stderr)
     shortest_path_length_col = ef.get_shortest_path_length(graph, pairs)
     
-    #katz beta score
-    #print('katz_score')
-    #katz_col = ef.get_katz_score(train_graph, train_graph.edges(), 0.8, 3)
-
-    #hitting time
-    #print('hitting_time')
-    #hitting_col = ef.get_hitting_time(train_graph, train_graph.edges(), 3)
-    
-    #rooted pagerank
-
     print('preferential attachment score', file=sys.stderr)
     prefer_col = ef.get_preferential_score(graph, pairs)
-    
-    #simrank
-    
-    # normalize the feature value
-    cf.normalize_column(edge_embed_col)
-    cf.normalize_column(jaccards_col)
-    cf.normalize_column(adamic_adar_col)
-    #cf.normalize_column(shortest_path_length_col)
-    #cf.normalize_column(katz_score)
-    #cf.normalize.column(hitting_col)
     cf.normalize_column(prefer_col)
 
-    pair_feature = (edge_embed_col, jaccards_col, adamic_adar_col,   
+    print('clustering coefficient score', file=sys.stderr)
+    cc_col = ef.get_cc_score(graph, pairs)
+    cf.normalize_column(cc_col)
+
+    pair_feature = [
+            edge_embed_col, 
+            jaccards_col, 
+            adamic_adar_col,   
             #shortest_path_length_col, 
-            prefer_col)
+            prefer_col, 
+            cc_col,
+        ]
+    
+    print('common categories', file=sys.stderr)
+    for column in node_feature:
+        if column.type == 'categorical':
+            pair_feature.append(ef.get_common_categories_col(column, pairs))
     
     return pair_feature
 
@@ -153,7 +158,7 @@ if __name__ == "__main__":
             cf.convert_to_dummy_variable(column)
     
     test_pair = file_io.read_data(test_file)
-    all_graph = update_nodes_from_test_data(train_graph, test_pair)
+    train_graph = update_nodes_from_test_data(train_graph, test_pair)
     test_ans = gen_label_mapping(test_pair, file_io.read_ans(test_ans_file))
     gen_training_data(train_graph, user_feature, out_train_file)
     gen_testing_data(train_graph, test_pair, test_ans, 
