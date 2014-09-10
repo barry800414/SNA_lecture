@@ -218,7 +218,7 @@ def get_common_categories_col(converted_column, pairs):
         union = f1 | f2
         intersect = f1 & f2
         if len(union) != 0 and len(intersect) != 0:
-            value[pair] = len(intersect) / len(union)
+            value[pair] = float(len(intersect)) / len(union)
         else:
             pass  #value[pair] = 0.0
     c.value = value

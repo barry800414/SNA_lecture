@@ -101,18 +101,18 @@ def feature_extraction(graph, pairs, node_feature):
     print('adamic/adar score', file=sys.stderr)
     adamic_adar_col = ef.get_adamic_adar_score(graph, pairs)
     cf.normalize_column(adamic_adar_col)
-
+    
     print('shortest path length', file=sys.stderr)
     shortest_path_length_col = ef.get_shortest_path_length(graph, pairs)
-    
+
     print('preferential attachment score', file=sys.stderr)
     prefer_col = ef.get_preferential_score(graph, pairs)
     cf.normalize_column(prefer_col)
-
+    
     print('clustering coefficient score', file=sys.stderr)
     cc_col = ef.get_cc_score(graph, pairs)
     cf.normalize_column(cc_col)
-
+    
     pair_feature = [
             edge_embed_col, 
             jaccards_col, 
