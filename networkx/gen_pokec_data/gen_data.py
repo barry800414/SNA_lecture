@@ -34,7 +34,7 @@ def generate_data(edges_set, training_num, testing_num, testing_neg_num):
     for i in range(training_num, training_num+testing_num):
         testing_edges_list.append((edges_list[i], 1))
     for e in neg_edges_set:
-        testing_edges_list.append((e, 0))
+        testing_edges_list.append((e, -1))
     random.shuffle(testing_edges_list)
 
     return (training_edges_list, testing_edges_list)

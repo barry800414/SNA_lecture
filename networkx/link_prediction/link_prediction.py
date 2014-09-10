@@ -56,8 +56,9 @@ def gen_training_data(train_graph, user_feature, filename):
     neg_edges = sample_negative_edges(train_graph, neg_edge_num)
     train_pairs = train_graph.edges()
     train_pairs.extend(neg_edges)
+    random.shuffle(train_pairs)
     train_labels = gen_label_mapping(train_graph.edges(), 1)
-    train_labels.update(gen_label_mapping(neg_edges, 0))
+    train_labels.update(gen_label_mapping(neg_edges, -1))
 
     # extract topplogical features
     pair_feature = feature_extraction(train_graph, train_pairs)
@@ -112,13 +113,14 @@ def feature_extraction(graph, pairs):
     cf.normalize_column(edge_embed_col)
     cf.normalize_column(jaccards_col)
     cf.normalize_column(adamic_adar_col)
-    cf.normalize_column(shortest_path_length_col)
+    #cf.normalize_column(shortest_path_length_col)
     #cf.normalize_column(katz_score)
     #cf.normalize.column(hitting_col)
     cf.normalize_column(prefer_col)
 
     pair_feature = (edge_embed_col, jaccards_col, adamic_adar_col,   
-            shortest_path_length_col, prefer_col)
+            #shortest_path_length_col, 
+            prefer_col)
     
     return pair_feature
 
@@ -140,6 +142,7 @@ if __name__ == "__main__":
     train_graph = file_io.read_graph(train_file)
     config = file_io.read_config(config_file)
     user_feature = None
+    
     (user_feature, feature_name) = file_io.read_feature_column_major(user_profile_file, config)
     
     #normalize features
@@ -148,11 +151,10 @@ if __name__ == "__main__":
             cf.normalize_column(column)
         elif column.type == 'categorical':
             cf.convert_to_dummy_variable(column)
-
+    
     test_pair = file_io.read_data(test_file)
     all_graph = update_nodes_from_test_data(train_graph, test_pair)
     test_ans = gen_label_mapping(test_pair, file_io.read_ans(test_ans_file))
-    
     gen_training_data(train_graph, user_feature, out_train_file)
     gen_testing_data(train_graph, test_pair, test_ans, 
             user_feature, out_test_file)

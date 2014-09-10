@@ -150,8 +150,6 @@ def get_preferential_score(graph, pairs):
     c.value = value
     return c
 
-# cc score
-
 # get all node degree for all nodes in graph
 def get_all_node_degree(graph):
     c = Column(1, 'numerical')

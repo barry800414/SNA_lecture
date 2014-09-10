@@ -13,7 +13,7 @@ def normalize_column(column, normalize='sigmoid'):
         return 
     col_value = column.value
     if normalize == 'max':
-        values = value.values()
+        values = col_value.values()
         max_v = max(max(values), abs(min(values)))
         if max_v == 0.0:
             return column
@@ -60,7 +60,7 @@ def convert_to_svm_format(row_ids, node_feature, pair_feature, outfile, testing_
         if testing_ans != None:
             print(testing_ans[pair_id], end="", file=outfile)
         else:
-            print("1", end="", file=outfile)
+            print("+1", end="", file=outfile)
        
         # pair feature
         for i,column in enumerate(pair_feature):
