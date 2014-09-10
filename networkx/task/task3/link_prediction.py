@@ -7,6 +7,10 @@ import extract_feature as ef
 from Column import *
 import random
 
+'''
+Author: Wei-Ming Chen (MSLab, CSIE, NTU)
+Contacts: barry800414@gmail.com
+'''
 
 def sample_negative_edges(graph, num, method='random_edge'):
     nodes = graph.nodes()
@@ -46,99 +50,97 @@ def merge_graph(graph1, graph2):
     new_graph.add_nodes_from(graph2.nodes())
     return new_graph
 
-def gen_training_data(train_graph, lender_feature, loan_feature, filename):    
+def gen_training_data(train_graph, node_feature, filename):    
+    print('=========Generating training data=========', file=sys.stderr)
+
     # sample negative samples
     neg_edge_num = train_graph.number_of_edges()
     neg_edges = sample_negative_edges(train_graph, neg_edge_num)
     train_pairs = train_graph.edges()
     train_pairs.extend(neg_edges)
+    random.shuffle(train_pairs)
     train_labels = gen_label_mapping(train_graph.edges(), 1)
-    train_labels.update(gen_label_mapping(neg_edges, 0))
+    train_labels.update(gen_label_mapping(neg_edges, -1))
 
     # extract topplogical features
-    pair_feature = feature_extraction(train_graph, train_pairs)
+    pair_feature = feature_extraction(train_graph, train_pairs, node_feature)
     
+    # if you want to output dummy variable, comment the next line
+    node_feature = None
+
     outfile = open(filename, 'w')
-    cf.convert_to_svm_format(train_pairs, lender_feature, loan_feature, 
+    cf.convert_to_svm_format(train_pairs, node_feature, 
             pair_feature, outfile, testing_ans = train_labels)
     outfile.close()
 
 def gen_testing_data(all_graph, test_pairs, test_labels, 
-        lender_feature, loan_feature, filename):
-    
+        node_feature, filename):
+    print('=========Generating testing data=========', file=sys.stderr)
+
     # extract topological features
-    pair_feature = feature_extraction(all_graph, test_pairs)
+    pair_feature = feature_extraction(all_graph, test_pairs, node_feature)
+    
+    # if you want to output dummy variable, comment the next line
+    node_feature = None
 
     outfile = open(filename, 'w')
-    cf.convert_to_svm_format(test_pairs, lender_feature, loan_feature, 
+    cf.convert_to_svm_format(test_pairs, node_feature,  
             pair_feature, outfile, testing_ans = test_labels)
     outfile.close()
 
-def feature_extraction(graph, pairs):
-    # feature extraction
-    print('shortest path length', file=sys.stderr)
-    shortest_path_length_col = ef.get_shortest_path_length(graph, pairs)
-
+def feature_extraction(graph, pairs, node_feature):
+    
     print('edge_embedness', file=sys.stderr)
     edge_embed_col = ef.get_edge_embeddedness(graph, pairs)
+    cf.normalize_column(edge_embed_col)
 
     print('jaccards coefficient', file=sys.stderr)
     jaccards_col = ef.get_jaccards_coefficient(graph, pairs)
-    
-    # normalize the feature value
-    cf.normalize_column(shortest_path_length_col)
-    cf.normalize_column(edge_embed_col)
     cf.normalize_column(jaccards_col)
-
-    pair_feature = (shortest_path_length_col, edge_embed_col, 
-            jaccards_col)
+    
+    print('shortest path length', file=sys.stderr)
+    shortest_path_length_col = ef.get_shortest_path_length(graph, pairs)
+    
+    pair_feature = [
+            edge_embed_col, 
+            jaccards_col, 
+            #shortest_path_length_col, 
+        ]
     
     return pair_feature
 
 if __name__ == "__main__":
     if len(sys.argv) != 8:
-        print('Usage', sys.argv[0], 'in_train_file in_test_file in_test_ans lender_file loan_file out_train_file out_test_file')
+        print('Usage:', sys.argv[0], 'in_train_file in_test_file in_test_ans in_user_profile_file in_config out_train_file out_test_file')
         exit()
     
     # arguments
     train_file = sys.argv[1]
     test_file = sys.argv[2]
     test_ans_file = sys.argv[3]
-    lender_file = sys.argv[4]
-    loan_file = sys.argv[5]
+    user_profile_file = sys.argv[4]
+    config_file = sys.argv[5]
     out_train_file = sys.argv[6]
     out_test_file = sys.argv[7]
-    
 
     # read in data
     train_graph = file_io.read_graph(train_file)
-    (lender_feature, lender_column_name) = \
-        file_io.read_feature_column_major(lender_file,
-        ['categorical', 'numerical','numerical', 'numerical'])
-    (loan_feature, loan_column_name) = \
-        file_io.read_feature_column_major(loan_file, 
-        ['categorical', 'numerical', 'numerical', 'categorical', 'other'])
-
-    #test_graph = file_io.read_test_graph(test_file, test_ans_file)
+    config = file_io.read_config(config_file)
+    user_feature = None
+    
+    (user_feature, feature_name) = file_io.read_feature_column_major(user_profile_file, config)
+    
+    #normalize features
+    for column in user_feature:
+        if column.type == 'numerical':
+            cf.normalize_column(column)
+        elif column.type == 'categorical':
+            cf.convert_to_dummy_variable(column)
+    
     test_pair = file_io.read_data(test_file)
-    all_graph = update_nodes_from_test_data(train_graph, test_pair)
+    train_graph = update_nodes_from_test_data(train_graph, test_pair)
     test_ans = gen_label_mapping(test_pair, file_io.read_ans(test_ans_file))
-    #all_graph = merge_graph(train_graph, test_graph)
-
-    for column in lender_feature:
-        if column.type == 'numerical':
-            cf.normalize_column(column)
-        elif column.type == 'categorical':
-            cf.convert_to_dummy_variable(column)
-
-    for column in loan_feature:
-        if column.type == 'numerical':
-            cf.normalize_column(column)
-        elif column.type == 'categorical':
-            cf.convert_to_dummy_variable(column)
-
-    gen_training_data(train_graph, lender_feature, 
-            loan_feature, out_train_file)
+    gen_training_data(train_graph, user_feature, out_train_file)
     gen_testing_data(train_graph, test_pair, test_ans, 
-            lender_feature, loan_feature, out_test_file)
+            user_feature, out_test_file)
 

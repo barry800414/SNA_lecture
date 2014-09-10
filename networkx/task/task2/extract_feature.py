@@ -1,15 +1,35 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
+import sys
 import networkx as nx
 import math
+import random
+from collections import defaultdict
+
 from Column import *
 
-# get all node degree for all nodes in graph
-def get_all_node_degree(graph):
+'''
+Author: Wei-Ming Chen (MSLab, CSIE, NTU)
+Contacts: barry800414@gmail.com
+'''
+
+'''
+graph: the training graph 
+pairs: the pairs of nodes to extract features
+       pairs[i][0] denotes the node_1 of i-th pair
+       pairs[i][1] denotes the node_2 of i-th pair
+'''
+
+NO_PATH_LENGTH = 1000
+
+# get all edge embeddedness(number of common neighbors) for the edge in edges
+def get_edge_embeddedness(graph, pairs):
     c = Column(1, 'numerical')
     value = dict()
-    for v in graph.nodes():
-        value[v] = graph.degree(v)
+    for pair in pairs:
+        n1 = pair[0]
+        n2 = pair[1]
+        value[pair] = len(list(nx.common_neighbors(graph, n1, n2)))
     c.value = value
     return c
 
@@ -18,28 +38,15 @@ def get_shortest_path_length(graph, pairs):
     c = Column(1, 'numerical')
     value = dict()
     for pair in pairs:
+        n1 = pair[0]
+        n2 = pair[1]
         try:
-            value[pair] = nx.shortest_path_length(graph, pair[0], pair[1])
-        except:
+            # TODO Task_2: EDIT HERE, please find the number of 
+            # common neighbors of n1 and n2
+            # value[pair] = ooxx
             pass
+        except:
+            value[pair] = NO_PATH_LENGTH
     c.value = value
     return c
 
-
-# get all edge betweenness centrality of all edges in graph
-def get_all_edge_betweenness_centrality(graph):
-    c = Column(1, 'numerical')
-    c.value = nx.edge_betweenness_centrality(graph)
-    return c
-
-# get all edge embeddedness(number of common neighbors) for the edge in edges
-def get_edge_embeddedness(graph, pairs):
-    c = Column(1, 'numerical')
-    value = dict()
-    for pair in pairs:
-        # TODO Task_2: EDIT HERE, please find the number of 
-        # common neighbors of pair[0] and pair[1]
-        # value[pair] = ooxx
-        pass
-    c.value = value
-    return c

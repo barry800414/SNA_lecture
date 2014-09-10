@@ -5,6 +5,7 @@ Author: Wei-Ming (MsLab)
 Usage: deal with I/O part for link prediction project
 '''
 
+import json
 import networkx as nx
 from Column import *
 
@@ -30,19 +31,19 @@ def read_ans(filename):
     return ans
 
 # read feature csv file as a list of Columns 
-def read_feature_column_major(filename, column_type):
+def read_feature_column_major(filename, column_config):
     with open(filename, 'r') as f:
         line = f.readline().strip()
         entry = line.split(',')
         column_name = entry[1:]
         column_num = len(column_name)
-        assert len(column_type) == column_num
+        assert len(column_config) == column_num
         
         # generate the list of Columns for later usage
         columns = list()
-        for t in column_type:
+        for name in column_name:
+            t = column_config[name]
             c = Column(1, t)
-            c.value = dict()
             columns.append(c)
         
         # read in rows 
@@ -52,13 +53,16 @@ def read_feature_column_major(filename, column_type):
             row_id = int(entry[0])
             for i, column in enumerate(columns):
                 value = entry[i+1].strip()
-                if len(value) == 0 or value == 'None':
+                if len(value) == 0 or value == 'None' or value == 'null':
                     continue
                 if column.type == 'categorical':
-                    column.value[row_id] = value
+                    value = value.split('\t')
+                    column.value[row_id] = list()
+                    for v in value:
+                        column.value[row_id].append(v)
                 elif column.type == 'numerical':
                     column.value[row_id] = float(value)
-        
+
     return (columns, column_name)
 
 # read feature csv file as a list of rows
@@ -87,27 +91,8 @@ def read_graph(filename):
             graph.add_edge(int(entry[0]), int(entry[1]))
     return graph
 
-# FAULT: the function has stolen the answer
-def read_test_graph(filename, ansfile):
-    graph = nx.Graph()
-    f1 = open(filename, 'r')
-    f2 = open(ansfile, 'r')
-    f1.readline()
-    for line1 in f1:
-        line2 = f2.readline()
-        ans = int(line2.strip())
-        entry = (line1.strip()).split(',')
-        x = int(entry[0])
-        y = int(entry[1])
-        if ans == 1:
-            graph.add_edge(x, y)
-        else:
-            graph.add_node(x)
-            graph.add_node(y)
-
-    f1.close()
-    f2.close()
-
-    return graph
-
-
+def read_config(filename):
+    # read configuration file
+    with open(filename, 'r') as f:
+        config = json.load(f)
+    return config
